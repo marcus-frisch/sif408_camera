@@ -1,3 +1,12 @@
+*.jpg
+*.jpeg
+imgs/
+tuning/
+visualised/
+.DS_Store
+*.csv
+settings.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
