@@ -229,7 +229,23 @@ def process_two_views(front_path: str, back_path: str):
     print(f"[AUTO DETECT] Combined results: {results}")
     return results
 
+# --------------------------- Error formatting --------------------------------
 
+class PymodbusErrorFilter(logging.Filter):
+    """
+    Suppress the noisy 'unpack requires a buffer of 4 bytes' error from pymodbus
+    and print a clearer hint instead.
+    """
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        if (
+            "unpack requires a buffer of 4 bytes" in msg
+            and "Unknown exception" in msg
+            and "stream server forcing disconnect" in msg
+        ):
+            print("Error connecting to UR: Teach pendent > Installation > Fieldbus > MODBUS > Refresh List... Registers should then show green on teach pendent.")
+            return False  # block the original log line
+        return True
 
 # --------------------------- Logic loop --------------------------------------
 
@@ -370,8 +386,14 @@ def run_modbus_server():
         logging.basicConfig(level=logging.INFO)
         logging.getLogger("pymodbus").setLevel(logging.INFO)
 
+    # Attach filter to both the main pymodbus logger and the sub-logger
+    err_filter = PymodbusErrorFilter()
+    logging.getLogger("pymodbus").addFilter(err_filter)
+    logging.getLogger("pymodbus.logging").addFilter(err_filter)
+
     print(f"[MODBUS] Starting server on port {MODBUS_PORT}")
     _start_modbus_server(context, host="0.0.0.0", port=MODBUS_PORT)
+
 
 # ------------------------------ Main -----------------------------------------
 
