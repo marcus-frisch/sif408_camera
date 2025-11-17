@@ -1,0 +1,844 @@
+ Program
+   Variables Setup
+   BeforeStart
+     CurrentPos≔get_actual_tcp_pose()
+     CurrentXValue≔CurrentPos[0]
+     CurrentYValue≔CurrentPos[1]
+     CurrentZValue≔CurrentPos[2]
+     If (CurrentXValue≥-0.018 and CurrentXValue ≤-0.014) and (CurrentYValue≤-0.296 and CurrentYValue≥-0.310) and (CurrentZValue≥0.160 and CurrentZValue≤0.305)
+       Popup: Robot inside warehouse, press continue to bring it to a safe position automatically.
+       CurrentPos[0]=-0.106
+       CurrentPos[1]=-0.211
+       MoveL
+         CurrentPos
+       MoveJ
+         ChargerSafe
+         UL_HomePos
+   Robot Program
+     Set OutNET_Done=Off
+     Set OutNet_FullBin=Off
+     Set OutNet_Tool=Off
+     Set OuTNET_Gripper=0
+     Set OutNET_Ready=On
+     MoveJ
+       UL_HomePos
+     Loop
+       Set OutNET_Done=Off
+       Wait InNET_Enable
+       Wait InNET_Run and InNET_Operation≠0
+       Switch InNET_Operation
+         Case 1
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call CHARGER1_pick
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 2
+           Wait InNET_Enable and  InNet_Halt
+           Set OutNET_Done=Off
+           Call C1pk2move
+           Call CHARGER1_pick
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 3
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call C1pk3move
+           Call CHARGER1_pick
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 4
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call C1pk4move
+           Call CHARGER1_pick
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 5
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call C1pk5move
+           Call CHARGER1_pick
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 6
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PACK1_release
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 7
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PACK2_release
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 8
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PACK3_release
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 9
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK1CAN1_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 10
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK1CAN2_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 11
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK1CAN3_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 12
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK1CAN4_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 13
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK2CAN1_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 14
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK2CAN2_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 15
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK2CAN3_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 16
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK2CAN4_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 17
+           Wait InNET_Enable
+           Set OutNET_Done=Off
+           Call PK3CAN1_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 18
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK3CAN2_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 19
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK3CAN3_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 20
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Call PK3CAN4_release
+           Call PALLET__remove
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 21
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Set OutNET_Done=On
+           Call PACK1_pick
+           Call PACK_Unload
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 22
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Set OutNET_Done=On
+           Call PACK2_pick
+           Call PACK_Unload
+           Set OutNET_Done=On
+           Wait: 2.0
+         Case 23
+           Wait InNET_Enable and InNet_Halt
+           Set OutNET_Done=Off
+           Set OutNET_Done=On
+           Call PACK3_pick
+           Call PACK_Unload
+           Set OutNET_Done=On
+           Wait: 2.0
+   PACK1_release
+     MoveJ
+       HomePos
+       Pack_aprox
+     MoveL
+       pl1_PK1up_2
+     MoveL
+       pl1_PK1_1
+       Set OuTNET_Gripper=0
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       Wait: 2.0
+       pl1_PK1up_3
+     MoveJ
+       Pack_aprox_1
+       HomePos
+   PACK2_release
+     MoveJ
+       HomePos
+       Pack_aprox_1
+     MoveL
+       pl1_PK2up_2
+     MoveL
+       p1_PK2_1
+       Set OuTNET_Gripper=0
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       Wait: 2.0
+       pl1_PK2up_3
+     MoveJ
+       Pack_aprox_3
+       HomePos
+   PACK3_release
+     MoveJ
+       HomePos
+       Pack_aprox_1
+     MoveL
+       pl1_PK3up_2
+     MoveL
+       pl1_PK3_1
+       Set OuTNET_Gripper=0
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       Wait: 2.0
+       pl1_PK3up_3
+       MoveJ
+         Pack_aprox_3
+         HomePos
+   CHARGER1_pick
+     MoveJ
+       HomePos
+       C1_aprox1
+       C1_aprox2
+       MoveL
+         pl2_C1out
+       MoveL
+         pl2_C1
+       Set OuTNET_Gripper=5
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       MoveL
+         pl2_C1out_1
+       MoveL
+         pl2_C1scanner
+       Wait: 2.0
+       C1_aprox2
+       C1_aprox1
+       HomePos
+   CHARGER2_pick
+     MoveJ
+       HomePos
+       C1_aprox1
+       Pre_take_C2
+       MoveL
+         Take_C2
+       Set OuTNET_Gripper=5
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       MoveL
+         Pre_take_C2_1
+       scanner
+       C1_aprox1
+       HomePos
+   C1pk2move
+     MoveJ
+       HomePos
+       C1mov_aprox
+     MoveL
+       C1premove_2
+     MoveL
+       pl3C1mov_ini
+       Wait: 1.0
+       pl3C1mback
+       pl3C1mback_apr
+     MoveJ
+       UL_C1mov_aprox
+       UL_HomePos
+   C2pk2move
+     MoveJ
+       HomePos
+       C2mov_aprox
+     MoveL
+       C2premove_2
+     MoveL
+       pl3C2mov_ini
+       Wait: 1.0
+       pl3C2mback
+       pl3C2mback_apr
+     MoveJ
+       C2mov_aprox
+       HomePos
+   C1pk3move
+     MoveJ
+       HomePos
+       C1mov_aprox
+     MoveL
+       C1premove_3
+     MoveL
+       pl3C1mov_ini_1
+       Wait: 1.0
+       pl3C1mback_1
+       pl3C1mback_ap_1
+     MoveJ
+       UL_C1mov_aprox
+       UL_HomePos
+   C2pk3move
+     MoveJ
+       HomePos
+       C2mov_aprox
+     MoveL
+       C2premove_2
+     MoveL
+       pl3C2mov_ini_1
+       Wait: 1.0
+       pl3C2mback_1
+       pl3C2mback_ap_1
+     MoveJ
+       C2mov_aprox
+       HomePos
+   C1pk4move
+     MoveJ
+       HomePos
+       C1mov_aprox
+     MoveL
+       C1premove_4
+     MoveL
+       pl3C1mov_ini_2
+       Wait: 1.0
+       pl3C1mback_2
+       pl3C1mback_ap_2
+     MoveJ
+       UL_C1mov_aprox
+       UL_HomePos
+   C2pk4move
+     MoveJ
+       HomePos
+       C2mov_aprox
+     MoveL
+       C2premove_2
+     MoveL
+       pl3C2mov_ini_2
+       Wait: 1.0
+       pl3C2mback_2
+       pl3C2mback_ap_2
+     MoveJ
+       C2mov_aprox
+       HomePos
+   C1pk5move
+     MoveJ
+       UL_HomePos
+       UL_C1mov_aprox
+     MoveL
+       C1premove_5
+     MoveL
+       pl3C1mov_ini_3
+       Wait: 1.0
+       pl3C1mback_3
+       pl3C1mback_ap_3
+     MoveJ
+       UL_C1mov_aprox
+       UL_HomePos
+   C2pk5move
+     MoveJ
+       HomePos
+       C2mov_aprox
+     MoveL
+       C2premove_2
+     MoveL
+       pl3C2mov_ini_3
+       Wait: 1.0
+       pl3C2mback_3
+       pl3C2mback_ap_3
+     MoveJ
+       C2mov_aprox
+       HomePos
+   PACK1_pick
+     MoveJ
+       UL_HomePos
+       UL_Pack_aprox_1
+     MoveL
+       pl1_PK1up_2
+     MoveL
+       pl1_PK1_1
+       Set OuTNET_Gripper=5
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       pl1_PK1up_3
+     MoveJ
+       UL_Pack_aprox_1
+   PACK2_pick
+     MoveJ
+       UL_HomePos
+       UL_Pack_aprox_1
+     MoveL
+       pl1_PK2up_2
+     MoveL
+       p1_PK2_1
+       Set OuTNET_Gripper=5
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       pl1_PK2up_3
+     MoveJ
+       UL_Pack_aprox_1
+   PACK3_pick
+     MoveJ
+       UL_HomePos
+       UL_Pack_aprox_1
+     MoveL
+       pl1_PK3up_2
+     MoveL
+       pl1_PK3_1
+       Set OuTNET_Gripper=5
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       pl1_PK3up_3
+     MoveJ
+       UL_Pack_aprox_1
+   PACK_Unload
+     MoveJ
+       Belt_up
+     MoveL
+       Belt_end
+       Belt_down
+       Set OuTNET_Gripper=0
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       Belt_unload
+       Belt_end
+       Wait: 3.0
+     MoveJ
+       HomePos
+   PALLET__remove
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pallet_pick
+       Set OuTNET_Gripper=5
+       Set OutNet_Tool=On
+       Wait: 3.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       Pallet_prepick
+       Pallet_release
+       If InNET_PalletNum≠1 and InNET_PalletNum≠3 and InNET_PalletNum≠5 and InNET_PalletNum≠7
+         If InNET_PalletNum≤5
+           D1_pallet_down
+         Else
+           D1_pallet_up
+       ElseIf InNET_PalletNum≤5
+         D2_pallet_down
+       Else
+         D2_pallet_up
+       Set OuTNET_Gripper=0
+       Set OutNet_Tool=On
+       Wait: 3.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       D_UP
+     If InNET_PalletNum≥8
+       MoveJ
+         HomePos
+       Set OutNet_FullBin=On
+       Wait: 2.0
+       Set OutNet_FullBin=Off
+       Wait: 2.0
+       Wait InNET_Enable
+     Else
+       MoveJ
+         HomePos
+   PK1CAN1_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister11up
+     MoveL
+       pl1Canister11
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist11up_1
+     MoveJ
+       Canister_aprox
+   PK1CAN2_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister12up
+     MoveL
+       pl1Canister12
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist12up
+     MoveJ
+       Canister_aprox
+   PK1CAN3_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister13up
+     MoveL
+       pl1Canister13
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist13up
+     MoveJ
+       Canister_aprox
+   PK1CAN4_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister14up
+     MoveL
+       pl1Canister14
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist14up
+     MoveJ
+       Canister_aprox
+   PK2CAN1_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister21up
+     MoveL
+       pl1Canister21
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist21up
+     MoveJ
+       Canister_aprox
+   PK2CAN2_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister22up
+     MoveL
+       pl1Canister22
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist22up
+     MoveJ
+       Canister_aprox
+   PK2CAN3_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister23up
+     MoveL
+       pl1Canister23
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist23up
+     MoveJ
+       Canister_aprox
+   PK2CAN4_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister24up
+     MoveL
+       pl1Canister24
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist24up
+     MoveJ
+       Canister_aprox
+   PK3CAN1_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister31up
+     MoveL
+       pl1Canister31
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist31up
+     MoveJ
+       Canister_aprox
+   PK3CAN2_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister32up
+     MoveL
+       pl1Canister32
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist32up
+     MoveJ
+       Canister_aprox
+   PK3CAN3_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister33up
+     MoveL
+       pl1Canister33
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist3up
+     MoveJ
+       Canister_aprox
+   PK3CAN4_release
+     MoveJ
+       Pallet_prepick
+     MoveL
+       Pick_canister
+     Set OuTNET_Gripper=6
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       Pallet_prepick
+     MoveJ
+       Canister_aprox
+     MoveL
+       pl1Canister34up
+     MoveL
+       pl1Canister34
+     Set OuTNET_Gripper=2
+     Set OutNet_Tool=On
+     Wait: 3.0
+     Wait InNET_InPos=HI
+     Set OutNet_Tool=Off
+     MoveL
+       pl1Canist34up
+     MoveJ
+       Canister_aprox
+   Plane1_Packs
+     MoveJ
+       PL1orig
+       PL1_Xinc
+       PL1_Yinc
+       PL1orig_aprox
+   Plane2_Charger
+     MoveJ
+       PL2orig
+       PL2orig_aprox
+       PL2_Xinc
+       PL2_Yinc
+   Plane3_C1move
+     MoveJ
+       PL3orig
+       PL3orig_aprox
+       PL3_Yinc
+       PL3_Zinc
+   Plane4_C2move
+     MoveJ
+       PL4orig
+       PL4_Yinc
+       PL4_Zinc
+       pl4orig_aprox

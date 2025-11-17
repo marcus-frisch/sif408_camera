@@ -1,0 +1,1499 @@
+//PROFINET Communication Status bits 0->6
+"HW_Status" := (*"DBGlobal".HWState[0] OR*) "DBGlobal".HWState[1] OR "DBGlobal".HWState[2] OR "DBGlobal".HWState[3] (*OR "DBGlobal".HWState[4] OR "DBGlobal".HWState[5] OR "DBGlobal".HWState[6]*);
+
+// Information HMI_Op
+IF ("MESCommunication".MES_bIntegrated = TRUE) THEN
+    "HMI_Op" := UDINT_TO_UINT("udiNo_operation");
+ELSIF ("MESCommunication".MES_bIntegrated = FALSE AND "Steps_Main" <= 4) THEN
+    "HMI_Op" := "HMI_Operation";
+    "DBGlobal".VarPos[2].Bay := UINT_TO_USINT("HMI_Bay");
+    "DBGlobal".VarPos[2].PackPosition := UINT_TO_USINT("HMI_PackPosition");
+END_IF;
+
+// Station ready
+"udiEtatStation".%X0 := "Steps_Main" = 4;
+
+// Station alarm
+"MESCommunication".MES_bAlarm := ("Steps_Main" < 4  OR "Steps_Main" = 60 OR "Steps_Main" = 61 OR "Steps_Main" = 65 OR "Steps_Main" = 70 OR "Steps_Main" = 71 OR "Steps_Main" = 80 OR "Steps_Main" = 81 OR "Steps_Main" = 90 OR "Steps_Main" = 100 OR "Steps_Main" = 101 OR ("Steps_Main" >= 150 AND "Steps_Main" <= 187));
+
+// Cycle running
+"udiEtatStation".%X1 := "Steps_Main" <> 4;
+"MESCommunication".MES_bBusy := "udiEtatStation".%X1;
+
+"MESCommunication".MES_bMovPos1 := "DBGlobal".VarPos[1].bState;
+"MESCommunication".MES_bMovPos3 := "DBGlobal".VarPos[3].bState AND "dp1";
+
+
+// Reading of RFID1
+"TON_Start_0".TON(IN := "RFID_Reader_1_IN".Data[1].%X4 <> "bRFID_In1_Fric", PT := T#50ms);           
+
+IF ("TON_Start_0".Q = TRUE) THEN
+    "bRFID_In1_Fric" := "RFID_Reader_1_IN".Data[1].%X4;
+    "DBGlobal".VarPos[1].bState := TRUE;
+END_IF;
+
+FOR "i" := 15 TO 8 BY -1 DO
+    "Temp" := SHR(IN := "RFID_Reader_1_IN".Data["i"], N := 4);
+    IF "Temp" > 9 THEN
+        "Chr" := "Temp" + 55;
+    ELSE
+        "Chr" := "Temp" + 48;
+    END_IF;
+    "DBGlobal".VarPos[1].skuID[30 - ("i" * 2)] := "Chr";
+    
+    "Temp" := SHR(IN := SHL(IN := "RFID_Reader_1_IN".Data["i"], N := 4), N := 4);
+    IF "Temp" > 9 THEN
+        "Chr" := "Temp" + 55;
+    ELSE
+        "Chr" := "Temp" + 48;
+    END_IF;
+    "DBGlobal".VarPos[1].skuID[(30 - ("i" * 2)) + 1] := "Chr";
+END_FOR;
+
+// Reading of RFID2
+"TON_Start_1".TON(IN := "RFID_Reader_2_IN".Data[1].%X4 <> "bRFID_In2_Fric", PT := T#50ms);  
+
+IF ("TON_Start_1".Q = TRUE) THEN
+    "bRFID_In2_Fric" := "RFID_Reader_2_IN".Data[1].%X4;
+    "DBGlobal".VarPos[4].bState := TRUE;
+END_IF;
+
+FOR "i" := 15 TO 8 BY -1 DO
+    "Temp" := SHR(IN := "RFID_Reader_2_IN".Data["i"], N := 4);
+    IF "Temp" > 9 THEN
+        "Chr" := "Temp" + 55;
+    ELSE
+        "Chr" := "Temp" + 48;
+    END_IF;
+    "DBGlobal".VarPos[4].skuID[30 - ("i" * 2)] := "Chr";
+    
+    "Temp" := SHR(IN := SHL(IN := "RFID_Reader_2_IN".Data["i"], N := 4), N := 4);
+    IF "Temp" > 9 THEN
+        "Chr" := "Temp" + 55;
+    ELSE
+        "Chr" := "Temp" + 48;
+    END_IF;
+    "DBGlobal".VarPos[4].skuID[(30 - ("i" * 2)) + 1] := "Chr";
+END_FOR;
+
+
+//Control Pannel - Sequence Hold
+IF "HMI_Start" THEN
+    "continue" := TRUE;
+    "Robot_UR_OUT0"."Bool"[3] := TRUE;
+END_IF;
+
+IF "HMI_Stop" OR ("LEC_Table_IN1".Byte_1[7] OR "LEC_Gripper_IN1".Byte_1[7]) THEN
+    "continue" := FALSE;
+    "Robot_UR_OUT0"."Bool"[3] := FALSE;
+END_IF;
+
+IF "sif408_em" THEN
+    "Steps_Main" := 100;
+END_IF;
+
+"TP_Start".TON(IN := "HMI_Start", PT := T#150ms);
+
+//Safety Relay monitoring signal    
+"sif408_em" := NOT "sif408_sr";
+"DBPermanent".PAOEEStation.EmergencyPressed := "sif408_em";
+
+//Hardware status
+(*IF "HW_Status" THEN
+    "Steps_Main" := 65;
+ELSE
+    "HMI_PROFModStatus" := 0;
+END_IF;*)
+
+
+//Clearing Virtual Warehouse
+IF "HMI_MemClear" THEN
+    "DBGlobal".VarBay[0].bState := FALSE;
+    "DBGlobal".VarBay[1].bState := FALSE;
+    "DBGlobal".VarBay[2].bState := FALSE;
+END_IF;
+
+
+//HMI Sensor New Loader attached Events - Message to HMI
+"HMI_Loaders".%X0 := "sif408_dpp1";
+"HMI_Loaders".%X0 := "sif408_dpp2";
+
+
+//LEC TABLE Alarms
+IF "LEC_Table_IN1".Byte_1[7] AND "Steps_Main" <> 100 THEN
+    //Group B
+    IF (NOT "LEC_Table_IN0".Byte_0.%X0 AND "LEC_Table_IN0".Byte_0.%X1 AND NOT "LEC_Table_IN0".Byte_0.%X2 AND NOT "LEC_Table_IN0".Byte_0.%X3) THEN            //Alarm 1
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupB := TRUE;
+        "Steps_Main" := 150;
+        //Group C
+    ELSIF (NOT "LEC_Table_IN0".Byte_0.%X0 AND NOT "LEC_Table_IN0".Byte_0.%X1 AND "LEC_Table_IN0".Byte_0.%X2 AND NOT "LEC_Table_IN0".Byte_0.%X3) THEN         //Alarm 2
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupC := TRUE;
+        "Steps_Main" := 152;
+        //Group D
+    ELSIF (NOT "LEC_Table_IN0".Byte_0.%X0 AND NOT "LEC_Table_IN0".Byte_0.%X1 AND NOT "LEC_Table_IN0".Byte_0.%X2 AND "LEC_Table_IN0".Byte_0.%X3) THEN        //Alarm 3
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupD := TRUE;
+        "Steps_Main" := 154;
+        //Group E
+    ELSIF (NOT "LEC_Table_IN0".Byte_0.%X0 AND NOT "LEC_Table_IN0".Byte_0.%X1 AND NOT "LEC_Table_IN0".Byte_0.%X2 AND NOT "LEC_Table_IN0".Byte_0.%X3) THEN    //Alarm 4
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupE := TRUE;
+        "Steps_Main" := 156;
+    END_IF;
+END_IF;
+
+
+//LEC GRIPPER Alarms
+IF "LEC_Gripper_IN1".Byte_1[7] AND "Steps_Main" <> 100 THEN
+    //Group B
+    IF (NOT "LEC_Gripper_IN0".Byte_0.%X0 AND "LEC_Gripper_IN0".Byte_0.%X1 AND NOT "LEC_Gripper_IN0".Byte_0.%X2 AND NOT "LEC_Gripper_IN0".Byte_0.%X3) THEN           //Alarm 1
+        "DBPermanent".PAOEEStation.ElecFailure.Linear1.GroupB := TRUE;
+        "Steps_Main" := 180;
+        //Group C
+    ELSIF (NOT "LEC_Gripper_IN0".Byte_0.%X0 AND NOT "LEC_Gripper_IN0".Byte_0.%X1 AND "LEC_Gripper_IN0".Byte_0.%X2 AND NOT "LEC_Gripper_IN0".Byte_0.%X3) THEN        //Alarm 2
+        "DBPermanent".PAOEEStation.ElecFailure.Linear1.GroupC := TRUE;
+        "Steps_Main" := 182;
+        //Group D
+    ELSIF (NOT "LEC_Gripper_IN0".Byte_0.%X0 AND NOT "LEC_Gripper_IN0".Byte_0.%X1 AND NOT "LEC_Gripper_IN0".Byte_0.%X2 AND "LEC_Gripper_IN0".Byte_0.%X3) THEN       //Alarm 3
+        "DBPermanent".PAOEEStation.ElecFailure.Linear1.GroupD := TRUE;
+        "Steps_Main" := 184;
+        //Group E
+    ELSIF (NOT "LEC_Gripper_IN0".Byte_0.%X0 AND NOT "LEC_Gripper_IN0".Byte_0.%X1 AND NOT "LEC_Gripper_IN0".Byte_0.%X2 AND NOT "LEC_Gripper_IN0".Byte_0.%X3) THEN   //Alarm 4
+        "DBPermanent".PAOEEStation.ElecFailure.Linear1.GroupE := TRUE;
+        "Steps_Main" := 186;
+    END_IF;
+END_IF;
+
+
+//COLLECT DATA
+"HMI_PalletCount" := "DBPermanent".pPalletCount;
+
+IF ("Robot_UR_IN0"."Bool"[0] AND "Robot_UR_IN0"."Bool"[3]) AND "BinFull" = FALSE OR "DBPermanent".pPalletCount = 8 THEN
+    "BinFull" := TRUE;
+ELSE
+    "BinFull" := FALSE;
+END_IF;
+
+//Sending the number of pallets in the blue bin to UR robot
+"Robot_UR_OUT1"."Int"[1] := "DBPermanent".pPalletCount;
+
+//DISTURBANCE - Raw Material
+CASE "MESCommunication".MESDIST_usiRawMaterial OF
+    0:
+        "HMI_PackCount" := 5 - "DBPermanent".pPackCountLoader1;
+    1:
+        "DBPermanent".pPackCountLoader1 := 5;
+        "HMI_PackCount" := 5 - "DBPermanent".pPackCountLoader1;
+        
+END_CASE;
+
+IF ("Steps_Main" = 60) AND "HMI_Reset" THEN
+    "MESCommunication".MESDIST_usiRawMaterial := 0;
+END_IF;
+
+
+//INVENTORY data
+"MESCommunication".MESINV_SIF408_usiLoader1Pack := UINT_TO_USINT("HMI_PackCount");
+"MESCommunication".MESINV_SIF408_usiLoader2Pack := 0;
+
+
+//Alarm Notification Code
+CASE "Steps_Main" OF
+    4, 12, 20, 17, 40:
+        "MESCommunication".MES_iAlarmCode := 0;   //Initial conditions      
+    70:
+        "MESCommunication".MES_iAlarmCode := 31;  //Bin full    
+    60:
+        "MESCommunication".MES_iAlarmCode := 32;  //Lack of Packs
+    90:
+        "MESCommunication".MES_iAlarmCode := 33;  //BCR code unreadable 
+    80:
+        "MESCommunication".MES_iAlarmCode := 57;  //Robot Not Enable 
+    100:
+        "MESCommunication".MES_iAlarmCode := 58;  //Emergency alarm
+    150, 152, 154:
+        "MESCommunication".MES_iAlarmCode := 45;  //Table error, please RESET the station            
+    180, 182, 184:
+        "MESCommunication".MES_iAlarmCode := 55;  //Gripper error, please RESET the station      
+    156:
+        "MESCommunication".MES_iAlarmCode := 46;  //Table error, please POWER OFF the station        
+    186:
+        "MESCommunication".MES_iAlarmCode := 56;  //Gripper error, please POWER OFF the station      
+END_CASE;
+
+
+//Sequence Control Flow STEPS MAIN
+CASE "Steps_Main" OF
+    0:
+        "ic" := "sif408_a0" AND NOT "HW_Status";
+        //Reset the variables of the LEC Table
+        "LEC_Table_OUT0".Byte_0 := 0;
+        "LEC_Table_OUT1".Byte_1[0] := FALSE;
+        "LEC_Table_OUT1".Byte_1[1] := FALSE;
+        "LEC_Table_OUT1".Byte_1[2] := FALSE;
+        "LEC_Table_OUT1".Byte_1[3] := FALSE;
+        "LEC_Table_OUT1".Byte_1[4] := FALSE;
+        "LEC_Table_OUT1".Byte_1[5] := FALSE;
+        "LEC_Table_OUT1".Byte_1[6] := FALSE;
+        "LEC_Table_OUT1".Byte_1[7] := FALSE;
+        //Reset the variables of the LEC Gripper
+        "LEC_Gripper_OUT0".Byte_0 := 0;
+        "LEC_Gripper_OUT1".Byte_1[0] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[1] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[4] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[5] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[6] := FALSE;
+        "LEC_Gripper_OUT1".Byte_1[7] := FALSE;
+        
+        "Belt_Mode" := 0;
+        "Steps_Belts" := 0;
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := FALSE;
+        "sif408_ESTOP" := FALSE;
+        "sif408_APlus" := FALSE;
+        "HMI_PROFModStatus" := 0;
+        
+        "RFID_Reader_1_OUT".Data[0].%X0 := FALSE; // flag EXE
+        "RFID_Reader_2_OUT".Data[0].%X0 := FALSE; // flag EXE 
+        "bRFID_In1_Tag" := FALSE;
+        "bRFID_In2_Tag" := FALSE;
+        
+        /////////////////////////////////////////           
+        "Robot_UR_OUT1"."Int"[0] := 0;
+        "Robot_UR_OUT0"."Bool"[0] := FALSE;     
+        "Robot_UR_OUT0"."Bool"[1] := FALSE;     
+        "Robot_UR_OUT0"."Bool"[2] := FALSE;     //Auto play & Init
+        "Robot_UR_OUT0"."Bool"[4] := FALSE;     //Emergency stop to UR robot
+        
+        "DBGlobal".VarBay[0].bState := FALSE;
+        "DBGlobal".VarBay[1].bState := FALSE;
+        "DBGlobal".VarBay[2].bState := FALSE;
+        
+        "DBGlobal".VarBay[0].Bay := 0;
+        "DBGlobal".VarBay[1].Bay := 0;
+        "DBGlobal".VarBay[2].Bay := 0;
+        
+        "DBGlobal".VarBay[0].PackPos := 0;
+        "DBGlobal".VarBay[1].PackPos := 0;
+        "DBGlobal".VarBay[2].PackPos := 0;
+        
+        "DBPermanent".pPackCountLoader2 := 0;
+        "ProgGripper" := 0;
+        
+        "sif408_Job1" := TRUE;
+        "sif408_Job2" := TRUE;
+        "sif408_Job3" := TRUE;
+        
+        "PosLoader_en" := TRUE;
+        
+        //BCR data moving 
+        Chars_TO_Strg(Chars := "BCR_DATA".Data,
+                      pChars := 0,
+                      Cnt := 8,
+                      Strg => "DBGlobal".SERIAL_DATA);
+        STRG_VAL(IN := "DBGlobal".SERIAL_DATA,
+                 FORMAT := 0,
+                 P := 1,
+                 OUT => "BCR_old");
+        "BCR_SIF408" := 0;
+        "BCR_UPDATE" := 0;
+        "DBGlobal".SERIAL_DATA := DELETE(IN:="DBGlobal".SERIAL_DATA,L:=LEN("DBGlobal".SERIAL_DATA),P:=0);
+        "DBGlobal".BCR_SIF400 := DELETE(IN := "DBGlobal".BCR_SIF400, L := LEN("DBGlobal".BCR_SIF400), P := 0);
+        "NewPPack" := FALSE;
+        /////////////////////////////////////////
+        
+        "udiNo_operation" := 0;
+        "MESCommunication".MES_bMovPos1 := FALSE;
+        "MESCommunication".MES_bMovPos3 := FALSE;
+        
+        IF ("ic" = FALSE) OR ("LEC_Table_OUT1".Byte_1[7]) OR ("LEC_Gripper_OUT1".Byte_1[7]) THEN
+            "HMI_Start" := 0;
+            "Steps_Main" := 50;
+        ELSIF ("ic") THEN
+            "HMI_Start" := 0;
+            "Steps_Main" := 1;
+        END_IF;
+        
+    1:
+        //SVON
+        "LEC_Table_OUT1".Byte_1[1] := TRUE;
+        "LEC_Gripper_OUT1".Byte_1[1] := TRUE;
+        "Timer_1".TON(IN := TRUE, PT:=T#2s);
+        "HMI_Alarm" := "Clock_1Hz";
+        
+        IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[1] AND "LEC_Gripper_IN1".Byte_1[1]) THEN
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "RFID_Reader_1_OUT".Data[0].%X0 := TRUE; // Flag EXE
+            "RFID_Reader_2_OUT".Data[0].%X0 := TRUE; // Flag EXE
+            "Steps_Main" := 2;
+        END_IF;
+        
+        //Initialize RFIDs
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF "Timer_0".Q THEN
+            "RFID_Reader_1_OUT".Data[1] := 1;     // Command code (Read Mode)
+            "RFID_Reader_1_OUT".Data[2] := 0;     // Command Parameter 1 (Dir)
+            "RFID_Reader_1_OUT".Data[3] := 16;    // Command Parameter 2 (Byte to Read)
+            "RFID_Reader_2_OUT".Data[1] := 1;     // Command code (Read Mode)
+            "RFID_Reader_2_OUT".Data[2] := 0;     // Command Parameter 1 (Dir)
+            "RFID_Reader_2_OUT".Data[3] := 16;    // Command Parameter 2 (Byte to Read)
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+        END_IF;
+        
+    2:
+        //Send servos to HOME position
+        "LEC_Table_OUT1".Byte_1[4] := TRUE;
+        "LEC_Gripper_OUT1".Byte_1[4] := TRUE;
+        "Timer_1".TON(IN := TRUE, PT:=T#2s);
+        "HMI_Alarm" := "Clock_1Hz";
+        IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[2] AND "LEC_Table_IN1".Byte_1[3] AND "LEC_Gripper_IN1".Byte_1[2] AND "LEC_Gripper_IN1".Byte_1[3]) THEN
+            "Timer_1".TON(IN := FALSE, PT:=T#2s);
+            "Steps_Main" := 3;
+        END_IF;
+        
+    3:
+        //Servos in HOME position
+        "LEC_Table_OUT1".Byte_1[4] := FALSE;
+        "LEC_Table_OUT0".Byte_0 := 3;
+        "LEC_Table_OUT1".Byte_1[2] := TRUE;
+        "LEC_Gripper_OUT1".Byte_1[4] := FALSE;
+        "LEC_Gripper_OUT0".Byte_0 := 0;
+        "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+        "Timer_1".TON(IN := TRUE, PT:=T#2s);
+        "HMI_Alarm" := "Clock_1Hz";
+        
+        IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[3] AND "LEC_Gripper_IN1".Byte_1[3]) THEN
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT:=T#2s);
+            "Steps_Main" := 4;
+        END_IF;
+        
+    4:
+        //Waiting to start the cycle
+        (***************** PA OEE ****************)
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupB := FALSE;
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupC := FALSE;
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupD := FALSE;
+        "DBPermanent".PAOEEStation.ElecFailure.Table.GroupE := FALSE;
+        
+        "DBPermanent".PAOEEStation.ElecFailure.Gripper.GroupB := FALSE;
+        "DBPermanent".PAOEEStation.ElecFailure.Gripper.GroupC := FALSE;
+        "DBPermanent".PAOEEStation.ElecFailure.Gripper.GroupD := FALSE;
+        "DBPermanent".PAOEEStation.ElecFailure.Gripper.GroupE := FALSE;
+        
+        "DBPermanent".PAOEEStation.SIF408.BinFull := FALSE;
+        "DBPermanent".PAOEEStation.SIF408.RobotDisabled := FALSE;
+        "DBPermanent".PAOEEStation.SIF408.BCRCodeUnreadable := FALSE;
+        "DBPermanent".PAOEEStation.SIF408.PackLoaderEmpty := FALSE;
+        (*****************************************)
+        
+        "HMI_Alarm" := 0;
+        "HMI_ResetBlink" := FALSE;
+        "Robot_UR_OUT1"."Int"[0] := 0;
+        "Robot_UR_OUT0"."Bool"[0] := FALSE;     
+        "Robot_UR_OUT0"."Bool"[1] := FALSE;     
+        "Robot_UR_OUT0"."Bool"[2] := TRUE;      //Auto play & Init
+        "Robot_UR_OUT0"."Bool"[3] := TRUE;
+        
+        //ROBOT DISABLED
+        IF ("Steps_Main" = 4 AND NOT "Robot_UR_IN0"."Bool"[0]) THEN
+            "DBPermanent".PAOEEStation.SIF408.RobotDisabled := TRUE;
+            "LastStep" := "Steps_Main";
+            "Steps_Main" := 80;
+        ELSE
+            "DBPermanent".PAOEEStation.SIF408.RobotDisabled := FALSE;
+        END_IF;
+        
+        //PACK RESET FROM HMI
+        IF ("HMI_PackCountReset") THEN
+            "DBPermanent".pPackCountLoader1 := 0;
+        END_IF;
+        
+        //BIN RESET FROM HMI
+        IF ("HMI_PalletCountReset") THEN
+            "DBPermanent".pPalletCount := 0;
+        END_IF;
+        
+        //DO PACK
+        IF ("HMI_Start" OR "udiCmdStation".%X1 = TRUE) AND ("HMI_Op" = 1) AND "Robot_UR_IN0"."Bool"[0] AND ("Steps_Belts" = 0) THEN
+            IF ("DBGlobal".MSGProcessing[3]) THEN
+                "Steps_Belts" := 50;
+            ELSE
+                "Steps_Belts" := 0;
+                "Belt_Mode" := 3;
+            END_IF;
+            "Steps_Main" := 5;
+        END_IF;
+        
+        //REMOVE PACK
+        IF ("HMI_Start" OR "udiCmdStation".%X1 = TRUE) AND ("HMI_Op" = 2) AND "Robot_UR_IN0"."Bool"[0] AND ("Steps_Belts" = 0) THEN
+            "Steps_Main" := 400;
+        ELSIF ("HMI_Start" AND "udiCmdStation".%X1 = FALSE) AND ("HMI_Op" = 2) AND "Robot_UR_IN0"."Bool"[0] AND ("Steps_Belts" = 0) AND (("sif408_dbay1" AND "HMI_Bay" = 1) OR ("sif408_dbay2" AND "HMI_Bay" = 2) OR ("sif408_dbay3" AND "HMI_Bay" = 3)) THEN
+            "Steps_Main" := 400;
+        END_IF;
+        
+    5:
+        "PosLoader_en" := TRUE;
+        "udiCmdStation".%X1 := FALSE;
+        "LEC_Table_OUT0".Byte_0 := 0;
+        //BCR data moving 
+        Chars_TO_Strg(Chars := "BCR_DATA".Data,
+                      pChars := 0,
+                      Cnt := 8,
+                      Strg => "DBGlobal".SERIAL_DATA);
+        STRG_VAL(IN := "DBGlobal".SERIAL_DATA,
+                 FORMAT := 0,
+                 P := 1,
+                 OUT => "BCR_old");
+        "DBGlobal".BCR_SIF400 := DELETE(IN := "DBGlobal".BCR_SIF400, L := LEN("DBGlobal".BCR_SIF400), P := 0);
+        "Steps_Main" := 6;
+        
+    6:
+        //Opens gate of conveyor and Table to pos. so that palet is catched
+        "Timer_6".TON(IN :=TRUE, PT := T#500ms);               
+        "LEC_Table_OUT1".Byte_1[2] := TRUE;
+        IF ("Timer_6".Q AND "continue" AND "LEC_Table_IN1".Byte_1[3]) THEN
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "Timer_6".TON(IN := FALSE, PT := T#500ms);
+            "Steps_Main" := 7;
+        END_IF;
+        
+        
+    7:  //Sending the signal to the table to enter the pallet   
+        "LEC_Table_OUT0".Byte_0 := 1;
+        IF "sif408_dpt" THEN  //Pallet presence at table
+            "Timer_1".TON(IN := TRUE, PT := T#2s);
+        END_IF;
+        IF ("Timer_1".Q AND "continue") OR ("Timer_1".Q AND "MESCommunication".MES_bIntegrated = TRUE) THEN
+            "LEC_Table_OUT1".Byte_1[2] := TRUE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 8;
+        END_IF;
+        
+        
+    8:  //Pallet enters in the station
+        (***************** PA OEE ****************)
+        "DBPermanent".PAOEEStation.Cycle := TRUE;
+        (*****************************************)
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "LEC_Table_OUT0".Byte_0 := 0;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 9;
+        END_IF;
+        
+    9:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF "Timer_0".Q THEN
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 10;
+        END_IF;
+        
+    10: "Timer_4".TON(IN :=TRUE, PT := T#1500ms);
+        IF "Timer_4".Q THEN
+            "Timer_4".TON(IN := FALSE, PT := T#1500ms);
+            IF (NOT "dp1") THEN
+                "MESCommunication".MES_BeltFree := TRUE;
+            END_IF;
+            "Steps_Main" := 11;
+        END_IF;
+        
+    11:
+        IF ("LEC_Table_IN1".Byte_1[3] AND (((NOT "DBGlobal".VarBay[0].bState) AND "DBGlobal".VarPos[2].Bay = 1) OR ((NOT "DBGlobal".VarBay[1].bState) AND "DBGlobal".VarPos[2].Bay = 2) OR ((NOT "DBGlobal".VarBay[2].bState) AND "DBGlobal".VarPos[2].Bay = 3)) AND "continue") THEN
+            "sif408_APlus" := TRUE;
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "NextStep" := 12;
+            "Steps_Main" := 400;
+        ELSIF ("LEC_Table_IN1".Byte_1[3] AND ((("DBGlobal".VarBay[0].bState) AND "DBGlobal".VarPos[2].Bay = 1) OR (("DBGlobal".VarBay[1].bState) AND "DBGlobal".VarPos[2].Bay = 2) OR (("DBGlobal".VarBay[2].bState) AND "DBGlobal".VarPos[2].Bay = 3)) AND "continue") THEN
+            "sif408_APlus" := TRUE;
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "NextStep" := 20;
+            "Steps_Main" := 400;
+        END_IF;
+        
+    400: //RAW MATERIAL CHECKING
+        
+        //ROBOT DISABLED
+        IF ("Steps_Main" = 400 AND NOT "Robot_UR_IN0"."Bool"[0]) THEN
+            "DBPermanent".PAOEEStation.SIF408.RobotDisabled := TRUE;
+            "LastStep" := "Steps_Main";
+            "Steps_Main" := 80;
+        ELSE
+            "DBPermanent".PAOEEStation.SIF408.RobotDisabled := FALSE;
+        END_IF;
+        
+        //DO PACK
+        IF ("Steps_Main" = 400 AND "HMI_Op" = 1) THEN
+            
+            //PACK LOADER EMPTY
+            IF ("Steps_Main" = 400 AND "NextStep" = 12 AND ("DBPermanent".pPackCountLoader1 >= 5 OR "HMI_PackCount" = 0)) THEN
+                "DBPermanent".PAOEEStation.SIF408.PackLoaderEmpty := TRUE;
+                "Steps_Main" := 60;
+            ELSE
+                "DBPermanent".PAOEEStation.SIF408.PackLoaderEmpty := FALSE;
+            END_IF;
+            
+            //BIN FULL
+            IF ("Steps_Main" = 400 AND "BinFull") THEN
+                "DBPermanent".PAOEEStation.SIF408.BinFull := TRUE;
+                "Steps_Main" := 70;
+            ELSE
+                "DBPermanent".PAOEEStation.SIF408.BinFull := FALSE;
+            END_IF;
+            
+            //EVERYTHING OK
+            IF ("Steps_Main" = 400) THEN
+                "udiNo_operation" := 0;
+                "Steps_Main" := "NextStep"; // Step 12 or Step 20
+            END_IF;
+            
+        END_IF;
+        
+        //REMOVE PACK
+        IF ("Steps_Main" = 400 AND "HMI_Op" = 2) THEN
+            "Steps_Main" := 40;
+        END_IF;
+        
+    12: //Get a pack from the pack loader
+        IF "PosLoader_en" THEN
+            "DBPermanent".pPackCountLoader1 := "DBPermanent".pPackCountLoader1 + 1;
+            "PosLoader_en" := FALSE;
+        END_IF;
+        "Steps_Main" := 13;
+        
+    13://Picking Empty-Pack from Loader 1 
+        "PosLoader_en" := TRUE;
+        IF ("Robot_UR_IN0"."Bool"[1] = FALSE) THEN
+            "Robot_UR_OUT1"."Int"[0] := "DBPermanent".pPackCountLoader1;
+            "Robot_UR_OUT0"."Bool"[0] := TRUE;
+        END_IF;
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Steps_Main" := 14;
+        END_IF;
+        
+    14:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 15;
+        END_IF;
+        
+    15:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 16;
+        END_IF;
+        
+    16:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Robot_UR_OUT1"."Int"[0] := 0;
+            "Robot_UR_OUT0"."Bool"[0] := FALSE;
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "Steps_Main" := 170;
+        END_IF;
+        
+    170:
+        //BCR data moving 
+        Chars_TO_Strg(Chars := "BCR_DATA".Data,
+                      pChars := 0,
+                      Cnt := 8,
+                      Strg => "DBGlobal".SERIAL_DATA);
+        STRG_VAL(IN := "DBGlobal".SERIAL_DATA,
+                 FORMAT := 0,
+                 P := 1,
+                 OUT => "BCR_SIF408");
+        "DBGlobal".BCR_SIF400 := "DBGlobal".SERIAL_DATA;
+        //New pack at the loader
+        IF ("BCR_SIF408" <> "BCR_old") AND ("BCR_SIF408" <> 0) THEN
+            FOR "i" := 0 TO 7 DO
+                "DBGlobal".VarPos[2].BarCodePack["i"] := CHAR_TO_USINT("BCR_DATA".Data["i"]);
+            END_FOR;
+            "BCR_old" := "BCR_SIF408";
+            "NewPPack" := TRUE;
+        END_IF;
+        IF ("NewPPack" AND "continue") THEN
+            "Steps_Main" := 17;
+        ELSE
+            "Steps_Main" := 90;
+        END_IF;
+        
+    17: // Pack is Placed on Bay1/Bay2/Bay3             //PosBay:=1..3 --> UR_Robot.OUT_byte_1:=6..8;           
+        (***************** PA OEE ****************)
+        "DBPermanent".PAOEEStation.SIF408.BCRCodeUnreadable := FALSE;
+        (*****************************************)
+        "NewPPack" := FALSE;
+        IF "DBGlobal".VarPos[2].Bay = 1 THEN
+            "DBGlobal".VarBay[0].BarCode := "DBGlobal".VarPos[2].BarCodePack;
+            "DBGlobal".VarBay[0].bState := TRUE;
+            FOR "i" := 0 TO 15 DO
+                "DBGlobal".VarBay[0].skuID["i"] := 122;
+            END_FOR;
+            FOR "i" := 8 TO 15 DO
+                "DBGlobal".VarBay[0].skuID["i"] := "DBGlobal".VarPos[2].BarCodePack["i" - 8];
+            END_FOR;
+        ELSIF "DBGlobal".VarPos[2].Bay = 2 THEN
+            "DBGlobal".VarBay[1].BarCode := "DBGlobal".VarPos[2].BarCodePack;
+            "DBGlobal".VarBay[1].bState := TRUE;
+            FOR "i" := 0 TO 15 DO
+                "DBGlobal".VarBay[1].skuID["i"] := 122;
+            END_FOR;
+            FOR "i" := 8 TO 15 DO
+                "DBGlobal".VarBay[1].skuID["i"] := "DBGlobal".VarPos[2].BarCodePack["i" - 8];
+            END_FOR;
+        ELSIF "DBGlobal".VarPos[2].Bay = 3 THEN
+            "DBGlobal".VarBay[2].BarCode := "DBGlobal".VarPos[2].BarCodePack;
+            "DBGlobal".VarBay[2].bState := TRUE;
+            FOR "i" := 0 TO 15 DO
+                "DBGlobal".VarBay[2].skuID["i"] := 122;
+            END_FOR;
+            FOR "i" := 8 TO 15 DO
+                "DBGlobal".VarBay[2].skuID["i"] := "DBGlobal".VarPos[2].BarCodePack["i" - 8];
+            END_FOR;
+        END_IF;
+        
+        IF ("Robot_UR_IN0"."Bool"[1] = FALSE) THEN
+            "Robot_UR_OUT1"."Int"[0] := "DBGlobal".VarPos[2].Bay + 5;
+            "Robot_UR_OUT0"."Bool"[0] := TRUE;
+        END_IF;
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Steps_Main" := 18;
+        END_IF;
+        
+    18:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 19;
+        END_IF;
+        
+    19:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 190;
+        END_IF;
+        
+    190:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Robot_UR_OUT1"."Int"[0] := 0;
+            "Robot_UR_OUT0"."Bool"[0] := FALSE;
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            
+            IF ((("DBGlobal".VarBay[0].bState) AND "DBGlobal".VarPos[2].Bay = 1) OR (("DBGlobal".VarBay[1].bState) AND "DBGlobal".VarPos[2].Bay = 2) OR (("DBGlobal".VarBay[2].bState) AND "DBGlobal".VarPos[2].Bay = 3)) THEN
+                "Steps_Main" := 20;
+            ELSE
+                "Steps_Main" := 191;
+            END_IF;
+            
+        END_IF;
+        
+    191:
+        //A comes in
+        "sif408_APlus" := FALSE;                
+        IF ("sif408_a0" AND "continue") THEN
+            "Steps_Main" := 4;
+        END_IF;
+        
+    20: // Open Gripper     
+        "LEC_Gripper_OUT0".Byte_0 := 2;
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 21;
+        END_IF;
+        
+    21:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 22;
+        END_IF;
+        
+    22: // Product is Placed on PACKpos1-X                  //PackPosition:=1..4 --> UR_Robot.OUT_byte_1:=9..12;
+        IF ("Robot_UR_IN0"."Bool"[1] = FALSE) THEN
+            "Robot_UR_OUT1"."Int"[0] := "DBGlobal".VarPos[2].PackPosition + 4 * ("DBGlobal".VarPos[2].Bay - 1) + 8;
+            "Robot_UR_OUT0"."Bool"[0] := TRUE;
+        END_IF;
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "Steps_Main" := 23;
+        END_IF;
+        
+    23:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 24;
+        END_IF;
+        
+    24:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 25;
+        END_IF;
+        
+    25:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "Steps_Main" := 26;
+        END_IF;
+        
+    26:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 27;
+        END_IF;
+        
+    27:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 28;
+        END_IF;
+        
+    28:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 29;
+        END_IF;
+        
+    29: // Close Gripper
+        "LEC_Gripper_OUT0".Byte_0 := 0;
+        "Timer_6".TON(IN :=TRUE, PT := T#500ms);
+        IF ("Timer_6".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_6".TON (IN := FALSE, PT := T#500ms);
+            "Steps_Main" := 30;
+        END_IF;
+        
+    30: "Timer_6".TON(IN :=TRUE, PT := T#500ms);
+        IF ("Timer_6".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Timer_6".TON (IN := FALSE, PT := T#500ms);
+            "Steps_Main" := 31;
+        END_IF;
+        
+    31:
+        //A comes in
+        "sif408_APlus" := FALSE;                                            
+        "LEC_Table_OUT0".Byte_0 := 2;//preset backwards position
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "LEC_Table_OUT1".Byte_1[2] := TRUE;
+        IF ("Timer_0".Q AND "LEC_Table_IN1".Byte_1[3] AND "sif408_a0" AND "continue") THEN
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "Steps_Main" := 32;
+        END_IF;
+        
+    32:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "Steps_Main" := 33;
+        END_IF;
+        
+    33:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 34;
+        END_IF;
+        
+    34:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 35;
+        END_IF;
+        
+    35:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "Steps_Main" := 36;
+        END_IF;
+        
+    36:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 37;
+        END_IF;
+        
+    37:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 0;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "DBPermanent".pPalletCount := "DBPermanent".pPalletCount + 1;
+            "Steps_Main" := 38;
+        END_IF;
+        
+    38:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Robot_UR_OUT1"."Int"[0] := 0;
+            "Robot_UR_OUT0"."Bool"[0] := FALSE;
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "Steps_Main" := 39;
+        END_IF;
+        
+    39:
+        //Preset exit position
+        "LEC_Table_OUT0".Byte_0 := 3;
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "LEC_Table_OUT1".Byte_1[2] := TRUE;
+        IF ("Timer_0".Q AND "LEC_Table_IN1".Byte_1[3] AND "Steps_Belts" = 0) THEN
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "LEC_Table_OUT1".Byte_1[2] := FALSE;
+            "Steps_Main" := 390;
+        END_IF;
+        
+    390:
+        IF ("DBGlobal".VarPos[2].Finished = 89) THEN // FINISHED 
+            
+            IF "DBGlobal".VarPos[2].Bay = 1 THEN
+                "sif408_Job1" := FALSE;
+                "DBGlobal".VarBay[0].bDone := TRUE;
+                FOR "i" := 0 TO 3 DO
+                    "DBGlobal".VarBay[0].MovID["i"] := "DBGlobal".VarPos[2].NewMovID["i"];
+                END_FOR;
+            ELSIF "DBGlobal".VarPos[2].Bay = 2 THEN
+                "sif408_Job2" := FALSE;
+                "DBGlobal".VarBay[1].bDone := TRUE;
+                FOR "i" := 0 TO 3 DO
+                    "DBGlobal".VarBay[1].MovID["i"] := "DBGlobal".VarPos[2].NewMovID["i"];
+                END_FOR;
+            ELSIF "DBGlobal".VarPos[2].Bay = 3 THEN
+                "sif408_Job3" := FALSE;
+                "DBGlobal".VarBay[2].bDone := TRUE;
+                FOR "i" := 0 TO 3 DO
+                    "DBGlobal".VarBay[2].MovID["i"] := "DBGlobal".VarPos[2].NewMovID["i"];
+                END_FOR;
+            END_IF;
+            
+        ELSIF ("DBGlobal".VarPos[2].Finished = 78) THEN  // NOT FINISHED          
+            IF "DBGlobal".VarPos[2].Bay = 1 THEN
+                "sif408_Job1" := TRUE;
+            ELSIF "DBGlobal".VarPos[2].Bay = 2 THEN
+                "sif408_Job2" := TRUE;
+            ELSIF "DBGlobal".VarPos[2].Bay = 3 THEN
+                "sif408_Job3" := TRUE;
+            END_IF;
+        END_IF;
+        
+        // ACT cycle finished
+        "bnewACTdn" := TRUE;
+        
+        (***************** PA OEE ****************)
+        IF ("DBPermanent".PAOEEStation.Cycle = TRUE) THEN
+            "DBPermanent".PAOEEStation.Cycle := FALSE;
+            "DBPermanent".PAOEEStation.TotalUnits := "DBPermanent".PAOEEStation.TotalUnits + 1;
+            "DBPermanent".PAOEEStation.GoodUnits := "DBPermanent".PAOEEStation.GoodUnits + 1;
+        END_IF;
+        (*****************************************)
+        
+        //"bnewACTdn" := TRUE;
+        "Steps_Main" := 4;
+        
+    40: //PackProduct is Placed on Conveyor 
+        (***************** PA OEE ****************)
+        "DBPermanent".PAOEEStation.Cycle := TRUE;
+        (*****************************************)
+        "udiNo_operation" := 0;
+        "udiCmdStation".%X1 := FALSE;
+        
+        IF ("Robot_UR_IN0"."Bool"[1] = FALSE) THEN
+            IF "DBGlobal".VarPos[2].Bay = 1 THEN
+                "Robot_UR_OUT1"."Int"[0] := 21;
+            ELSIF "DBGlobal".VarPos[2].Bay = 2 THEN
+                "Robot_UR_OUT1"."Int"[0] := 22;
+            ELSIF "DBGlobal".VarPos[2].Bay = 3 THEN
+                "Robot_UR_OUT1"."Int"[0] := 23;
+            END_IF;
+            "Robot_UR_OUT0"."Bool"[0] := TRUE;
+        END_IF;
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Steps_Main" := 41;
+        END_IF;
+        
+    41:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 42;
+        END_IF;
+        
+    42:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 2;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 43;
+        END_IF;
+        
+    43:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+            "Steps_Main" := 44;
+        END_IF;
+        
+    44:
+        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 45;
+        END_IF;
+        
+    45:
+        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+            "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+            "LEC_Gripper_OUT0".Byte_0 := 2;
+            "Robot_UR_OUT0"."Bool"[1] := TRUE;
+            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Steps_Main" := 46;
+        END_IF;
+        
+    46:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Robot_UR_OUT1"."Int"[0] := 0;
+            "Robot_UR_OUT0"."Bool"[0] := FALSE;
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            
+            IF "DBGlobal".VarPos[2].Bay = 1 THEN
+                "DBGlobal".VarBay[0].bState := FALSE;
+                "DBGlobal".VarBay[0].bDone := FALSE;
+                "sif408_Job1" := TRUE;
+            ELSIF "DBGlobal".VarPos[2].Bay = 2 THEN
+                "DBGlobal".VarBay[1].bState := FALSE;
+                "DBGlobal".VarBay[1].bDone := FALSE;
+                "sif408_Job2" := TRUE;
+            ELSIF "DBGlobal".VarPos[2].Bay = 3 THEN
+                "DBGlobal".VarBay[2].bState := FALSE;
+                "DBGlobal".VarBay[2].bDone := FALSE;
+                "sif408_Job3" := TRUE;
+            END_IF;
+            
+            (***************** PA OEE ****************)
+            IF ("DBPermanent".PAOEEStation.Cycle = TRUE) THEN
+                "DBPermanent".PAOEEStation.Cycle := FALSE;
+                "DBPermanent".PAOEEStation.TotalUnits := "DBPermanent".PAOEEStation.TotalUnits + 1;
+                "DBPermanent".PAOEEStation.GoodUnits := "DBPermanent".PAOEEStation.GoodUnits + 1;
+            END_IF;
+            (*****************************************)
+            
+            "bnewMOVdn" := TRUE;
+            "Steps_Main" := 4;
+        END_IF;
+        
+        
+    50:
+        //No initial conditions
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("sif408_dbay1") THEN
+            "sif408_Job1" := "Clock_1Hz";
+        ELSE
+            "sif408_Job1" := TRUE;
+        END_IF;
+        IF ("sif408_dbay2") THEN
+            "sif408_Job2" := "Clock_1Hz";
+        ELSE
+            "sif408_Job2" := TRUE;
+        END_IF;
+        IF ("sif408_dbay3") THEN
+            "sif408_Job3" := "Clock_1Hz";
+        ELSE
+            "sif408_Job3" := TRUE;
+        END_IF;
+        
+        "sif408_APlus" := FALSE;
+        
+        IF "HMI_Reset" THEN
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Table_OUT1".Byte_1[3] := TRUE;
+            "LEC_Gripper_OUT1".Byte_1[3] := TRUE;
+            "Steps_Main" := 51;
+        END_IF;
+        
+    51:
+        "HMI_Alarm" := "Clock_1Hz";
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Table_OUT1".Byte_1[3] := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+            //"LEC_Gripper_OUT1".Byte_1[4] := FALSE;
+            //"LEC_Gripper_OUT0".Byte_0 := 0;
+            //"LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "ic" := "sif408_a0" AND "sif408_dpp1" AND "sif408_dpc1" AND "sif408_dpc2" AND NOT ("sif408_dbay1" OR "sif408_dbay2" OR "sif408_dbay3");
+            "continue" := TRUE;
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    60:
+        //PACK LOADER EMPTY
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        "PosLoader_en" := TRUE;
+        
+        IF "HMI_Reset" THEN
+            "HMI_ResetBlink" := FALSE;
+            "Steps_Main" := 61;
+        END_IF;
+        
+    61:
+        "HMI_Alarm" := FALSE;
+        "DBPermanent".pPackCountLoader1 := 0;
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 400;
+        END_IF;
+        
+        
+    65:
+        //HMI PROFINET Communication Status bits 0->6    
+        "HMI_Alarm" := TRUE;
+        
+        IF "DBGlobal".HWState[0] AND "DBGlobal".HWState[1] THEN     //ET200 errors
+            "HMI_PROFModStatus" := 1;
+            "sif408_APlus" := FALSE;
+            "sif408_Job1" := FALSE;
+            "sif408_Job2" := FALSE;
+            "sif408_Job3" := FALSE;
+        ELSIF "DBGlobal".HWState[0] AND "DBGlobal".HWState[2] THEN  //LEC Table errors
+            "HMI_PROFModStatus" := 2;
+        ELSIF "DBGlobal".HWState[0] AND "DBGlobal".HWState[3] THEN  //LEC Gripper errors
+            "HMI_PROFModStatus" := 3;
+        ELSE
+            "HMI_PROFModStatus" := 0;
+        END_IF;
+        
+        IF "HMI_Reset" THEN
+            "HMI_Alarm" := FALSE;
+            IF "HMI_PROFModStatus" = 1 THEN     //ET200 errors
+                "sif408_APlus" := FALSE;
+            ELSIF "HMI_PROFModStatus" = 2 THEN  //LEC Table errors
+                "LEC_Table_OUT1".Byte_1[3] := TRUE;
+                "LEC_Table_OUT1".Byte_1[1] := FALSE;
+            ELSIF "HMI_PROFModStatus" = 3 THEN  //LEC Gripper errors
+                "LEC_Gripper_OUT1".Byte_1[3] := TRUE;
+                "LEC_Gripper_OUT1".Byte_1[1] := FALSE;
+            END_IF;
+            "HMI_PROFModStatus" := 0;
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    70:
+        //BIN FULL
+        "HMI_Alarm" := "Clock_1Hz";
+        
+        //BIN RESET FROM HMI
+        IF ("HMI_PalletCountReset") THEN
+            "DBPermanent".pPalletCount := 0;
+            "Steps_Main" := 71;
+        END_IF;
+        
+    71:
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
+        IF ("Timer_1".Q AND "HMI_Reset") THEN
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
+            "HMI_ResetBlink" := FALSE;
+            "Steps_Main" := 400;
+        END_IF;
+        
+        
+    80:
+        //Alarm coming from Robot - Robot Not Enable 
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF "HMI_Reset" THEN
+            "HMI_ResetBlink" := FALSE;
+            "Robot_UR_OUT0"."Bool"[2] := FALSE;      //Auto play & Init
+            "Steps_Main" := 81;
+        END_IF;
+        
+    81:
+        "HMI_Alarm" := FALSE;
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Robot_UR_OUT0"."Bool"[2] := TRUE;      //Auto play & Init
+            "Steps_Main" := "LastStep";
+        END_IF;
+        
+        
+    90://BCR code unreadable
+        (***************** PA OEE ****************)
+        "DBPermanent".PAOEEStation.SIF408.BCRCodeUnreadable := TRUE;
+        (*****************************************)
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        //Converting BCR data type 
+        "DBGlobal".BCR_TEMP := DINT_TO_STRING("BCR_UPDATE");
+        FOR "i" := 0 TO 7 DO
+            "DBGlobal".VarPos[2].BarCodePack["i"] := "DBGlobal".BCR_TEMP["i" + 2];
+        END_FOR;
+        "BCR_SIF408" := "BCR_UPDATE";
+        IF "HMI_Reset" THEN
+            "HMI_ResetBlink" := FALSE;
+            "Steps_Main" := 91;
+        END_IF;
+        
+    91:
+        "HMI_Alarm" := FALSE;
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "NewPPack" := TRUE;
+            "Steps_Main" := 17;
+        END_IF;
+        
+        
+    100:
+        //Emergency alarm
+        "sif408_ESTOP" := "Clock_1Hz";
+        "HMI_Alarm" := TRUE;
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ((*"HW_Status" AND*)"Timer_1".Q) THEN
+            "HMI_ResetBlink" := "Clock_1Hz";
+        ELSE
+            "HMI_ResetBlink" := FALSE;
+        END_IF;
+        
+        "Robot_UR_OUT1"."Int"[0] := 0;
+        "Robot_UR_OUT0"."Bool"[4] := TRUE;  //Emergency stop to UR robot
+        
+        "bRFID_In1_Fric" := "RFID_Reader_1_IN".Data[1].%X4;
+        "bRFID_In2_Fric" := "RFID_Reader_2_IN".Data[1].%X4;
+        "SetV_1" := 0;
+        "SetV_2" := 0;
+        
+        IF ("HMI_Reset" (*AND "HW_Status"*)) THEN
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Table_OUT1".Byte_1[3] := TRUE;
+            "LEC_Gripper_OUT1".Byte_1[3] := TRUE;
+            "LEC_Table_OUT1".Byte_1[1] := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[1] := FALSE;
+            "Steps_Main" := 101;
+        END_IF;
+        
+    101:
+        "sif408_ESTOP" := FALSE;
+        "HMI_Alarm" := FALSE;
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "Robot_UR_OUT0"."Bool"[4] := FALSE;  //Emergency stop to UR robot
+            "LEC_Table_OUT1".Byte_1[3] := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    150:
+        //LEC TABLE Alarm - GROUP B
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("HMI_Reset") THEN
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Table_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Table_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Steps_Main" := 151;
+        END_IF;
+        
+    151:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Table_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    152:
+        //LEC TABLE Alarm - GROUP C
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("HMI_Reset") THEN 
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Table_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Table_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Steps_Main" := 153;
+        END_IF;
+        
+    153:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Table_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    154:
+        //LEC TABLE Alarm - GROUP D
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("HMI_Reset") THEN 
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Table_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Table_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Steps_Main" := 155;
+        END_IF;
+        
+    155:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Table_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    156:
+        //LEC TABLE Alarm - GROUP E
+        "HMI_Alarm" := "Clock_1Hz";
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN 
+            "LEC_Table_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Table_OUT1".Byte_1[1] := FALSE;  //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 157;
+        END_IF;
+        
+    157:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Table_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    180:
+        //LEC GRIPPER Alarm - GROUP B
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("HMI_Reset") THEN 
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Gripper_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Steps_Main" := 181;
+        END_IF;
+        
+    181:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    182:
+        //LEC GRIPPER Alarm - GROUP C
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("HMI_Reset") THEN
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Gripper_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Steps_Main" := 183;
+        END_IF;
+        
+    183:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    184:
+        //LEC GRIPPER Alarm - GROUP D
+        "HMI_Alarm" := "Clock_1Hz";
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        IF ("HMI_Reset") THEN 
+            "HMI_ResetBlink" := FALSE;
+            "LEC_Gripper_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Gripper_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Steps_Main" := 185;
+        END_IF;
+        
+    185:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    186:
+        //LEC GRIPPER Alarm - GROUP E
+        "HMI_Alarm" := "Clock_1Hz";
+        
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN 
+            "LEC_Gripper_OUT1".Byte_1[3] := TRUE; //reset
+            "LEC_Gripper_OUT1".Byte_1[1] := FALSE; //svon
+            "SetV_1" := 0;
+            "SetV_2" := 0;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 187;
+        END_IF;
+        
+    187:
+        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        IF ("Timer_1".Q) THEN
+            "LEC_Gripper_OUT1".Byte_1[3] := FALSE;
+            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Steps_Main" := 0;
+        END_IF;
+        
+        
+    200:
+        //Remote I/O not activated
+        "HMI_Alarm" := "Clock_1Hz";
+        IF "HW_Status" THEN
+            "Steps_Main" := 50;
+        END_IF;
+        
+        
+    600:
+        //PLANNED STOP
+        "HMI_Alarm" := TRUE;
+        "HMI_ResetBlink" := "Clock_1Hz";
+        
+        //PACK RESET FROM HMI
+        IF ("HMI_PackCountReset") THEN
+            "DBPermanent".pPackCountLoader1 := 0;
+        END_IF;
+        
+        //BIN RESET FROM HMI
+        IF ("HMI_PalletCountReset") THEN
+            "DBPermanent".pPalletCount := 0;
+        END_IF;
+        
+        IF ("HMI_Reset" AND "MAINT_PlannedStop" = 0 AND "HMI_PlannedStop" = 0) THEN
+            "Steps_Main" := 0;
+        END_IF;
+        
+END_CASE;
