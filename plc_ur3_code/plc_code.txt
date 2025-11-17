@@ -260,8 +260,8 @@ CASE "Steps_Main" OF
         
         /////////////////////////////////////////           
         "Robot_UR_OUT1"."Int"[0] := 0;
-        "Robot_UR_OUT0"."Bool"[0] := FALSE;     
-        "Robot_UR_OUT0"."Bool"[1] := FALSE;     
+        "Robot_UR_OUT0"."Bool"[0] := FALSE;
+        "Robot_UR_OUT0"."Bool"[1] := FALSE;
         "Robot_UR_OUT0"."Bool"[2] := FALSE;     //Auto play & Init
         "Robot_UR_OUT0"."Bool"[4] := FALSE;     //Emergency stop to UR robot
         
@@ -297,7 +297,7 @@ CASE "Steps_Main" OF
                  OUT => "BCR_old");
         "BCR_SIF408" := 0;
         "BCR_UPDATE" := 0;
-        "DBGlobal".SERIAL_DATA := DELETE(IN:="DBGlobal".SERIAL_DATA,L:=LEN("DBGlobal".SERIAL_DATA),P:=0);
+        "DBGlobal".SERIAL_DATA := DELETE(IN := "DBGlobal".SERIAL_DATA, L := LEN("DBGlobal".SERIAL_DATA), P := 0);
         "DBGlobal".BCR_SIF400 := DELETE(IN := "DBGlobal".BCR_SIF400, L := LEN("DBGlobal".BCR_SIF400), P := 0);
         "NewPPack" := FALSE;
         /////////////////////////////////////////
@@ -318,19 +318,23 @@ CASE "Steps_Main" OF
         //SVON
         "LEC_Table_OUT1".Byte_1[1] := TRUE;
         "LEC_Gripper_OUT1".Byte_1[1] := TRUE;
-        "Timer_1".TON(IN := TRUE, PT:=T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         "HMI_Alarm" := "Clock_1Hz";
         
         IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[1] AND "LEC_Gripper_IN1".Byte_1[1]) THEN
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "RFID_Reader_1_OUT".Data[0].%X0 := TRUE; // Flag EXE
             "RFID_Reader_2_OUT".Data[0].%X0 := TRUE; // Flag EXE
             "Steps_Main" := 2;
         END_IF;
         
         //Initialize RFIDs
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF "Timer_0".Q THEN
             "RFID_Reader_1_OUT".Data[1] := 1;     // Command code (Read Mode)
             "RFID_Reader_1_OUT".Data[2] := 0;     // Command Parameter 1 (Dir)
@@ -338,17 +342,20 @@ CASE "Steps_Main" OF
             "RFID_Reader_2_OUT".Data[1] := 1;     // Command code (Read Mode)
             "RFID_Reader_2_OUT".Data[2] := 0;     // Command Parameter 1 (Dir)
             "RFID_Reader_2_OUT".Data[3] := 16;    // Command Parameter 2 (Byte to Read)
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
         END_IF;
         
     2:
         //Send servos to HOME position
         "LEC_Table_OUT1".Byte_1[4] := TRUE;
         "LEC_Gripper_OUT1".Byte_1[4] := TRUE;
-        "Timer_1".TON(IN := TRUE, PT:=T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         "HMI_Alarm" := "Clock_1Hz";
         IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[2] AND "LEC_Table_IN1".Byte_1[3] AND "LEC_Gripper_IN1".Byte_1[2] AND "LEC_Gripper_IN1".Byte_1[3]) THEN
-            "Timer_1".TON(IN := FALSE, PT:=T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Steps_Main" := 3;
         END_IF;
         
@@ -360,13 +367,15 @@ CASE "Steps_Main" OF
         "LEC_Gripper_OUT1".Byte_1[4] := FALSE;
         "LEC_Gripper_OUT0".Byte_0 := 0;
         "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-        "Timer_1".TON(IN := TRUE, PT:=T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         "HMI_Alarm" := "Clock_1Hz";
         
         IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[3] AND "LEC_Gripper_IN1".Byte_1[3]) THEN
             "LEC_Table_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
-            "Timer_1".TON(IN := FALSE, PT:=T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Steps_Main" := 4;
         END_IF;
         
@@ -392,8 +401,8 @@ CASE "Steps_Main" OF
         "HMI_Alarm" := 0;
         "HMI_ResetBlink" := FALSE;
         "Robot_UR_OUT1"."Int"[0] := 0;
-        "Robot_UR_OUT0"."Bool"[0] := FALSE;     
-        "Robot_UR_OUT0"."Bool"[1] := FALSE;     
+        "Robot_UR_OUT0"."Bool"[0] := FALSE;
+        "Robot_UR_OUT0"."Bool"[1] := FALSE;
         "Robot_UR_OUT0"."Bool"[2] := TRUE;      //Auto play & Init
         "Robot_UR_OUT0"."Bool"[3] := TRUE;
         
@@ -452,11 +461,13 @@ CASE "Steps_Main" OF
         
     6:
         //Opens gate of conveyor and Table to pos. so that palet is catched
-        "Timer_6".TON(IN :=TRUE, PT := T#500ms);               
+        "Timer_6".TON(IN := TRUE,
+                      PT := T#500ms);
         "LEC_Table_OUT1".Byte_1[2] := TRUE;
         IF ("Timer_6".Q AND "continue" AND "LEC_Table_IN1".Byte_1[3]) THEN
             "LEC_Table_OUT1".Byte_1[2] := FALSE;
-            "Timer_6".TON(IN := FALSE, PT := T#500ms);
+            "Timer_6".TON(IN := FALSE,
+                          PT := T#500ms);
             "Steps_Main" := 7;
         END_IF;
         
@@ -464,11 +475,13 @@ CASE "Steps_Main" OF
     7:  //Sending the signal to the table to enter the pallet   
         "LEC_Table_OUT0".Byte_0 := 1;
         IF "sif408_dpt" THEN  //Pallet presence at table
-            "Timer_1".TON(IN := TRUE, PT := T#2s);
+            "Timer_1".TON(IN := TRUE,
+                          PT := T#2s);
         END_IF;
         IF ("Timer_1".Q AND "continue") OR ("Timer_1".Q AND "MESCommunication".MES_bIntegrated = TRUE) THEN
             "LEC_Table_OUT1".Byte_1[2] := TRUE;
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Steps_Main" := 8;
         END_IF;
         
@@ -477,24 +490,31 @@ CASE "Steps_Main" OF
         (***************** PA OEE ****************)
         "DBPermanent".PAOEEStation.Cycle := TRUE;
         (*****************************************)
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "LEC_Table_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Table_OUT1".Byte_1[2] := FALSE;
             "LEC_Table_OUT0".Byte_0 := 0;
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Steps_Main" := 9;
         END_IF;
         
     9:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF "Timer_0".Q THEN
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 10;
         END_IF;
         
-    10: "Timer_4".TON(IN :=TRUE, PT := T#1500ms);
+    10:
+        "Timer_4".TON(IN := TRUE,
+                      PT := T#1500ms);
         IF "Timer_4".Q THEN
-            "Timer_4".TON(IN := FALSE, PT := T#1500ms);
+            "Timer_4".TON(IN := FALSE,
+                          PT := T#1500ms);
             IF (NOT "dp1") THEN
                 "MESCommunication".MES_BeltFree := TRUE;
             END_IF;
@@ -571,36 +591,44 @@ CASE "Steps_Main" OF
             "Robot_UR_OUT0"."Bool"[0] := TRUE;
         END_IF;
         
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Steps_Main" := 14;
         END_IF;
         
     14:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 15;
         END_IF;
         
     15:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 16;
         END_IF;
         
     16:
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Robot_UR_OUT1"."Int"[0] := 0;
             "Robot_UR_OUT0"."Bool"[0] := FALSE;
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
@@ -671,36 +699,44 @@ CASE "Steps_Main" OF
             "Robot_UR_OUT0"."Bool"[0] := TRUE;
         END_IF;
         
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Steps_Main" := 18;
         END_IF;
         
     18:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 19;
         END_IF;
         
     19:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 190;
         END_IF;
         
     190:
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Robot_UR_OUT1"."Int"[0] := 0;
             "Robot_UR_OUT0"."Bool"[0] := FALSE;
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
@@ -715,26 +751,30 @@ CASE "Steps_Main" OF
         
     191:
         //A comes in
-        "sif408_APlus" := FALSE;                
+        "sif408_APlus" := FALSE;
         IF ("sif408_a0" AND "continue") THEN
             "Steps_Main" := 4;
         END_IF;
         
     20: // Open Gripper     
         "LEC_Gripper_OUT0".Byte_0 := 2;
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 21;
         END_IF;
         
     21:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 22;
         END_IF;
         
@@ -744,10 +784,12 @@ CASE "Steps_Main" OF
             "Robot_UR_OUT0"."Bool"[0] := TRUE;
         END_IF;
         
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
             "Steps_Main" := 23;
@@ -755,27 +797,33 @@ CASE "Steps_Main" OF
         
     23:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 24;
         END_IF;
         
     24:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 25;
         END_IF;
         
     25:
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
             "Steps_Main" := 26;
@@ -783,63 +831,78 @@ CASE "Steps_Main" OF
         
     26:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 27;
         END_IF;
         
     27:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 28;
         END_IF;
         
     28:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 29;
         END_IF;
         
     29: // Close Gripper
         "LEC_Gripper_OUT0".Byte_0 := 0;
-        "Timer_6".TON(IN :=TRUE, PT := T#500ms);
+        "Timer_6".TON(IN := TRUE,
+                      PT := T#500ms);
         IF ("Timer_6".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_6".TON (IN := FALSE, PT := T#500ms);
+            "Timer_6".TON(IN := FALSE,
+                          PT := T#500ms);
             "Steps_Main" := 30;
         END_IF;
         
-    30: "Timer_6".TON(IN :=TRUE, PT := T#500ms);
+    30:
+        "Timer_6".TON(IN := TRUE,
+                      PT := T#500ms);
         IF ("Timer_6".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
-            "Timer_6".TON (IN := FALSE, PT := T#500ms);
+            "Timer_6".TON(IN := FALSE,
+                          PT := T#500ms);
             "Steps_Main" := 31;
         END_IF;
         
     31:
         //A comes in
-        "sif408_APlus" := FALSE;                                            
+        "sif408_APlus" := FALSE;
         "LEC_Table_OUT0".Byte_0 := 2;//preset backwards position
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         "LEC_Table_OUT1".Byte_1[2] := TRUE;
         IF ("Timer_0".Q AND "LEC_Table_IN1".Byte_1[3] AND "sif408_a0" AND "continue") THEN
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "LEC_Table_OUT1".Byte_1[2] := FALSE;
             "Steps_Main" := 32;
         END_IF;
         
     32:
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
             "Steps_Main" := 33;
@@ -847,27 +910,33 @@ CASE "Steps_Main" OF
         
     33:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 34;
         END_IF;
         
     34:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 35;
         END_IF;
         
     35:
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
             "Steps_Main" := 36;
@@ -875,28 +944,34 @@ CASE "Steps_Main" OF
         
     36:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 37;
         END_IF;
         
     37:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 0;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "DBPermanent".pPalletCount := "DBPermanent".pPalletCount + 1;
             "Steps_Main" := 38;
         END_IF;
         
     38:
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[1] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "Robot_UR_OUT1"."Int"[0] := 0;
             "Robot_UR_OUT0"."Bool"[0] := FALSE;
             "Robot_UR_OUT0"."Bool"[1] := FALSE;
@@ -906,10 +981,12 @@ CASE "Steps_Main" OF
     39:
         //Preset exit position
         "LEC_Table_OUT0".Byte_0 := 3;
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         "LEC_Table_OUT1".Byte_1[2] := TRUE;
         IF ("Timer_0".Q AND "LEC_Table_IN1".Byte_1[3] AND "Steps_Belts" = 0) THEN
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "LEC_Table_OUT1".Byte_1[2] := FALSE;
             "Steps_Main" := 390;
         END_IF;
@@ -979,40 +1056,109 @@ CASE "Steps_Main" OF
             "Robot_UR_OUT0"."Bool"[0] := TRUE;
         END_IF;
         
-        "Timer_1".TON(IN := TRUE, PT := T#2s);
+        "Timer_1".TON(IN := TRUE,
+                      PT := T#2s);
         
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
-            "Timer_1".TON(IN := FALSE, PT := T#2s);
+            "Timer_1".TON(IN := FALSE,
+                          PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
             "Steps_Main" := 41;
         END_IF;
         
     41:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
         IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 42;
         END_IF;
         
     42:
-        "Timer_0".TON(IN := TRUE, PT := T#1s);
+        "Timer_0".TON(IN := TRUE,
+                      PT := T#1s);
+        
         IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 2;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;
-            "Timer_0".TON(IN := FALSE, PT := T#1s);
+            "Timer_0".TON(IN := FALSE,
+                          PT := T#1s);
             "Steps_Main" := 43;
         END_IF;
         
+        
     43:
+        // cam
+        
+        IF "mm_grip".firstScan THEN
+            "Robot_UR_OUT0"."Bool"[1] := FALSE;
+            "mm_grip".firstScan := FALSE;
+        END_IF;
+        
+        "recvUR" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+        
+        IF DINT_TO_USINT("Robot_UR_IN1"."Int"[0]) = 8 THEN // Move to the next state if the UR requests gripper 8
+            "Steps_Main" := 44;
+        END_IF;
+        
+        // edge detect UR service request
+        "rb2"(CLK := "Robot_UR_IN0"."Bool"[2]);
+        
+        CASE ("mm_grip".step43_sub) OF
+            0:
+                IF "rb2".Q THEN
+                    // latch requested program index from the UR
+                    
+                    IF DINT_TO_USINT("Robot_UR_IN1"."Int"[0]) <> 8 THEN // Only move gripper if it's not 8 (sign to move to next state)
+                        "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
+                        // Pre-select on lec and give a tiny settle before drive
+                        "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
+                        "tsettle".TON(IN := TRUE,
+                                      PT := T#100ms);
+                        "mm_grip".step43_sub := 10;
+                    END_IF;
+                END_IF;
+                
+            10: // After small settle, start the move
+                "tsettle".TON(IN:=TRUE,
+                              PT:=T#100ms);
+                IF "tsettle".Q THEN
+                    "LEC_Gripper_OUT1".Byte_1[2] := TRUE;
+                    "tMove".TON(IN:=TRUE,
+                                PT:=T#4s);
+                    "mm_grip".step43_sub := 20;
+                END_IF;
+                
+            20: // wait for INP
+                "tMove".TON(IN := TRUE,
+                            PT := T#4s);
+                IF "LEC_Gripper_IN1".Byte_1[3] THEN
+                    "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
+                    "Robot_UR_OUT0"."Bool"[1] := TRUE;
+                    "mm_grip".step43_sub := 30;
+                END_IF;
+                
+            30:
+                IF NOT "Robot_UR_IN0"."Bool"[2] THEN
+                    "Robot_UR_OUT0"."Bool"[1] := FALSE;
+                    "mm_grip".step43_sub := 0;
+                END_IF;
+                
+        END_CASE;
+        
+        (*
         "Timer_1".TON(IN := TRUE, PT := T#2s);
         IF ("Timer_1".Q AND "Robot_UR_IN0"."Bool"[2] AND "continue") THEN
             "Timer_1".TON(IN := FALSE, PT := T#2s);
             "ProgGripper" := DINT_TO_USINT("Robot_UR_IN1"."Int"[0]);
-            "Steps_Main" := 44;
+            //"Steps_Main" := 44;
         END_IF;
+       *)
+       
         
     44:
         "LEC_Gripper_OUT0".Byte_0 := "ProgGripper";
@@ -1025,7 +1171,7 @@ CASE "Steps_Main" OF
         
     45:
         "Timer_0".TON(IN := TRUE, PT := T#1s);
-        IF ("Timer_0".Q AND "LEC_Gripper_IN1".Byte_1[3] AND "continue") THEN
+        IF ("Timer_0".Q AND "continue") THEN
             "LEC_Gripper_OUT1".Byte_1[2] := FALSE;
             "LEC_Gripper_OUT0".Byte_0 := 2;
             "Robot_UR_OUT0"."Bool"[1] := TRUE;

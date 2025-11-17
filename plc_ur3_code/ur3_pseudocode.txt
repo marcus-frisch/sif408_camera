@@ -5,6 +5,18 @@
      CurrentXValue≔CurrentPos[0]
      CurrentYValue≔CurrentPos[1]
      CurrentZValue≔CurrentPos[2]
+     mm_bay≔0
+     m_innet_op≔2000
+     Popup: Press Continue. If modbus error occurs go to Installation > Fieldbus > Modbus > 'refresh list' before proceeding. Check Raspberry pi is on. Using SSH, run 'sudo pm2 start 0 && sudo pm2 logs 0' if errors persist. This prompt is not an error but a warning.
+     mm_lst_insp_id≔mm_insp_id
+     mm_lst_res_v≔mm_res_ver
+     mm_lat_c1r≔ False 
+     mm_lat_c2r≔ False 
+     mm_lat_c3r≔ False 
+     mm_lat_c4r≔ False 
+     mm_recorr_req≔ False 
+     Set mm_pht_rdy_stp=0
+     Set mm_recv_inst=0
      If (CurrentXValue≥-0.018 and CurrentXValue ≤-0.014) and (CurrentYValue≤-0.296 and CurrentYValue≥-0.310) and (CurrentZValue≥0.160 and CurrentZValue≤0.305)
        Popup: Robot inside warehouse, press continue to bring it to a safe position automatically.
        CurrentPos[0]=-0.106
@@ -15,17 +27,24 @@
          ChargerSafe
          UL_HomePos
    Robot Program
+     mm_bay≔0
+     Set mm_pht_rdy_stp=0
+     Set mm_recv_inst=0
      Set OutNET_Done=Off
      Set OutNet_FullBin=Off
      Set OutNet_Tool=Off
      Set OuTNET_Gripper=0
      Set OutNET_Ready=On
+     Wait: 1.0
+     Set mm_done=Off
      MoveJ
        UL_HomePos
      Loop
        Set OutNET_Done=Off
+       Wait: 0.5
        Wait InNET_Enable
        Wait InNET_Run and InNET_Operation≠0
+       m_innet_op≔InNET_Operation
        Switch InNET_Operation
          Case 1
            Wait InNET_Enable and InNet_Halt
@@ -167,7 +186,20 @@
            Wait InNET_Enable and InNet_Halt
            Set OutNET_Done=Off
            Set OutNET_Done=On
+           Set OutNet_Tool=Off
+           Set mm_done=Off
+           mm_bay≔1
            Call PACK1_pick
+           Set mm_recv_inst=1
+           Wait: 0.5
+           Set mm_recv_inst=0
+           Call mm_cam_check
+           If c1_recorrect≟ True  or c2_recorrect≟ True  or c3_reconnect≟ True  or c4_reconnect≟ True 
+             Call mm_p1_put_back
+             Call mm_get_poke
+             Call mm_fix_pack1
+             Call mm_drop_poke
+             Call PACK1_pick
            Call PACK_Unload
            Set OutNET_Done=On
            Wait: 2.0
@@ -175,6 +207,7 @@
            Wait InNET_Enable and InNet_Halt
            Set OutNET_Done=Off
            Set OutNET_Done=On
+           mm_bay≔2
            Call PACK2_pick
            Call PACK_Unload
            Set OutNET_Done=On
@@ -183,6 +216,7 @@
            Wait InNET_Enable and InNet_Halt
            Set OutNET_Done=Off
            Set OutNET_Done=On
+           mm_bay≔3
            Call PACK3_pick
            Call PACK_Unload
            Set OutNET_Done=On
@@ -190,7 +224,7 @@
    PACK1_release
      MoveJ
        HomePos
-       Pack_aprox
+       Waypoint_7
      MoveL
        pl1_PK1up_2
      MoveL
@@ -198,17 +232,18 @@
        Set OuTNET_Gripper=0
        Set OutNet_Tool=On
        Wait: 2.0
-       Wait InNET_InPos=HI
-       Set OutNet_Tool=Off
+       Wait: 5.0
+       Set OutNet_Tool=On
        Wait: 2.0
        pl1_PK1up_3
      MoveJ
        Pack_aprox_1
        HomePos
+       Set OutNet_Tool=Off
    PACK2_release
      MoveJ
        HomePos
-       Pack_aprox_1
+       Waypoint_7
      MoveL
        pl1_PK2up_2
      MoveL
@@ -216,17 +251,18 @@
        Set OuTNET_Gripper=0
        Set OutNet_Tool=On
        Wait: 2.0
-       Wait InNET_InPos=HI
-       Set OutNet_Tool=Off
+       Wait: 5.0
+       Set OutNet_Tool=On
        Wait: 2.0
        pl1_PK2up_3
      MoveJ
        Pack_aprox_3
        HomePos
+       Set OutNet_Tool=Off
    PACK3_release
      MoveJ
        HomePos
-       Pack_aprox_1
+       Waypoint_7
      MoveL
        pl1_PK3up_2
      MoveL
@@ -234,16 +270,19 @@
        Set OuTNET_Gripper=0
        Set OutNet_Tool=On
        Wait: 2.0
-       Wait InNET_InPos=HI
-       Set OutNet_Tool=Off
+       Wait: 5.0
+       Set OutNet_Tool=On
        Wait: 2.0
        pl1_PK3up_3
        MoveJ
          Pack_aprox_3
          HomePos
+         Set OutNet_Tool=Off
    CHARGER1_pick
      MoveJ
        HomePos
+       Set OutNET_Done=Off
+       Set OutNet_Tool=Off
        C1_aprox1
        C1_aprox2
        MoveL
@@ -393,8 +432,14 @@
        C2mov_aprox
        HomePos
    PACK1_pick
+     Set OutNet_Tool=Off
+     Set OuTNET_Gripper=0
+     Wait: 1.0
+     Set OutNet_Tool=On
+     Wait: 2.0
      MoveJ
        UL_HomePos
+       Set OutNet_Tool=Off
        UL_Pack_aprox_1
      MoveL
        pl1_PK1up_2
@@ -402,7 +447,7 @@
        pl1_PK1_1
        Set OuTNET_Gripper=5
        Set OutNet_Tool=On
-       Wait: 2.0
+       Wait: 5.0
        Wait InNET_InPos=HI
        Set OutNet_Tool=Off
        pl1_PK1up_3
@@ -411,6 +456,8 @@
    PACK2_pick
      MoveJ
        UL_HomePos
+       Set OutNet_Tool=Off
+       Set OutNET_Done=Off
        UL_Pack_aprox_1
      MoveL
        pl1_PK2up_2
@@ -419,24 +466,28 @@
        Set OuTNET_Gripper=5
        Set OutNet_Tool=On
        Wait: 2.0
-       Wait InNET_InPos=HI
+       Wait: 5.0
        Set OutNet_Tool=Off
        pl1_PK2up_3
      MoveJ
        UL_Pack_aprox_1
    PACK3_pick
+     Set OutNet_Tool=Off
      MoveJ
        UL_HomePos
        UL_Pack_aprox_1
+     Set OuTNET_Gripper=0
+     Set OutNet_Tool=On
      MoveL
        pl1_PK3up_2
+       Wait: 1.0
+       Set OutNet_Tool=Off
      MoveL
        pl1_PK3_1
+       Wait: 1.0
        Set OuTNET_Gripper=5
        Set OutNet_Tool=On
-       Wait: 2.0
-       Wait InNET_InPos=HI
-       Set OutNet_Tool=Off
+       Wait: 5.0
        pl1_PK3up_3
      MoveJ
        UL_Pack_aprox_1
@@ -446,14 +497,18 @@
      MoveL
        Belt_end
        Belt_down
+       Set OutNet_Tool=Off
+       Wait: 1.0
        Set OuTNET_Gripper=0
        Set OutNet_Tool=On
        Wait: 2.0
        Wait InNET_InPos=HI
        Set OutNet_Tool=Off
-       Belt_unload
        Belt_end
-       Wait: 3.0
+       Wait: 1.0
+       Set OuTNET_Gripper=8
+       Set OutNet_Tool=On
+       Wait: 5.0
      MoveJ
        HomePos
    PALLET__remove
@@ -842,3 +897,93 @@
        PL4_Yinc
        PL4_Zinc
        pl4orig_aprox
+   mm_cam_check
+     Switch mm_bay
+       Case 1
+         MoveL
+           Waypoint_4
+           MoveJ
+             Waypoint_1
+             Wait: 2.0
+           Set mm_pht_rdy_stp=1
+           Wait mm_pht_stp_done≥1 and mm_pht_stp_done≤1
+           Waypoint_6
+           Waypoint_8
+           Wait: 2.0
+           Set mm_pht_rdy_stp=2
+           Wait mm_pht_stp_done≤2 and mm_pht_stp_done≥2
+           Set mm_pht_rdy_stp=0
+           Wait: 2.0
+   mm_p1_put_back
+     MoveJ
+       Pack_aprox_1
+       MoveL
+         Waypoint_3
+         Set OuTNET_Gripper=0
+         Set OutNet_Tool=On
+         Wait: 2.0
+         Waypoint_2
+         Set OutNet_Tool=Off
+         'put back done, fix containers next'
+   mm_get_poke
+     MoveJ
+       UL_Pack_aprox_1
+       abv_poke
+       Set OuTNET_Gripper=2
+       Set OutNet_Tool=On
+       Wait: 2.0
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       'open gripper'
+       poke_holder
+       Set OuTNET_Gripper=6
+       Set OutNet_Tool=On
+       Wait: 3.5
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       'close_gripper'
+       abv_poke
+       UL_Pack_aprox_1
+   mm_fix_pack1
+     MoveJ
+       UL_Pack_aprox_1
+       abv_p1
+     MoveL
+       If c1_recorrect≟1
+         c1_approx
+         c1_push
+         c1_approx
+         'Fixed c1'
+         abv_p1
+       If c2_recorrect≟1
+         c2_approx
+         c2_push
+         c2_approx
+         'Fixed c2'
+         abv_p1
+       If c3_reconnect≟1
+         c3_approx
+         c3_push
+         c3_approx
+         'Fixed c3'
+         abv_p1
+       If c4_reconnect≟1
+         c4_approx
+         c4_push
+         c4_approx
+         'Fixed c4'
+         abv_p1
+   mm_drop_poke
+     MoveJ
+       UL_Pack_aprox_1
+       abv_poke
+       poke_holder
+       Set OuTNET_Gripper=2
+       Set OutNet_Tool=On
+       Wait InNET_InPos=HI
+       Set OutNet_Tool=Off
+       abv_poke
+       Set OuTNET_Gripper=0
+       Set OutNet_Tool=On
+       Waypoint_5
+       Set OutNet_Tool=Off
